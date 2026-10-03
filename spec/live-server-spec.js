@@ -35,7 +35,12 @@ liveSuite("ide-powershell real Editor Services", () => {
     await client?.stop();
     edge?.dispose();
     await lumine.packages.deactivatePackage("ide-powershell");
-    for (const key of ["serverPath", "powershellPath", "acceptRenameDisclaimer"])
+    for (const key of [
+      "serverPath",
+      "powershellPath",
+      "acceptRenameDisclaimer",
+      "analyzerSettingsPath",
+    ])
       lumine.config.unset(`ide-powershell.${key}`);
     await removeProject(directory);
   });
@@ -46,5 +51,44 @@ liveSuite("ide-powershell real Editor Services", () => {
     expect(covered.length).toBe(20);
     expect(covered).toContain("closed helper definition");
     expect(covered).toContain("UTF-16 rename after emoji");
+  });
+  it("preserves the project analyzer rule configuration", async () => {
+    lumine.config.set("ide-powershell.analyzerSettingsPath", "PSScriptAnalyzerSettings.psd1");
+    const fixture = createProject(directory);
+    fs.writeFileSync(
+      path.join(directory, "PSScriptAnalyzerSettings.psd1"),
+      "@{ IncludeRules = @('PSAvoidUsingCmdletAliases') }\n",
+    );
+    await client.start();
+    client.open(fixture.uri, "powershell", fixture.text);
+    const diagnostics = await client.waitFor(() => {
+      const latest = client.messages("textDocument/publishDiagnostics").at(-1)?.params.diagnostics;
+      return latest?.some(({ code }) => code === "PSAvoidUsingCmdletAliases") && latest;
+    }, "project analyzer rules");
+    expect(diagnostics.some(({ code }) => code === "PSUseDeclaredVarsMoreThanAssignments")).toBe(
+      false,
+    );
+  });
+  it("preserves the upstream rename acknowledgement and asks only once per session", async () => {
+    lumine.config.set("ide-powershell.acceptRenameDisclaimer", false);
+    const fixture = createProject(directory);
+    let prompts = 0;
+    client.onShowMessageRequest = (params) => {
+      prompts++;
+      expect(params.message).toContain("rename");
+      return params.actions.find(({ title }) => title === "I Accept");
+    };
+    await client.start();
+    client.open(fixture.uri, "powershell", fixture.text);
+    const { position } = require("./helpers/project");
+    const params = {
+      textDocument: { uri: fixture.uri },
+      position: position(fixture.text, "$greeting", 0, 2),
+    };
+    expect(await client.request("textDocument/prepareRename", params)).not.toBeNull();
+    expect(
+      (await client.request("textDocument/rename", { ...params, newName: "salutation" })).changes,
+    ).toBeDefined();
+    expect(prompts).toBe(1);
   });
 });

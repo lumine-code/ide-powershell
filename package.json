@@ -85,7 +85,7 @@
     },
     "analyzerSettingsPath": {
       "title": "Analyzer Settings Path",
-      "description": "Optional PSScriptAnalyzer settings file. Leave empty to preserve project settings and server defaults.",
+      "description": "Optional PSScriptAnalyzer settings file, relative to the workspace root or absolute. Leave empty to use the default analyzer rules.",
       "type": "string",
       "default": ""
     },

@@ -22,7 +22,7 @@ Install a [supported PowerShell 7+ runtime](https://learn.microsoft.com/powershe
 
 ## Usage
 
-Open a script or the folder containing your PowerShell project. The selected runtime and its module environment determine which cmdlets are available. PowerShell profiles are not loaded by the language session. Project `PSScriptAnalyzerSettings.psd1` files and an explicitly selected analyzer settings file configure analysis without rewriting your project.
+Open a script or the folder containing your PowerShell project. The selected runtime and its module environment determine which cmdlets are available. PowerShell profiles are not loaded by the language session. Select your project's `PSScriptAnalyzerSettings.psd1` file to apply its analysis rules without rewriting it; relative paths resolve from the workspace root. An empty analyzer settings path uses the server's default rules.
 
 Editor Services uses stdio for language features. Its Extension Terminal, debugger, Pester run/debug lenses and client documentation commands require separate client integrations and are unavailable here. Compiler-style code actions that contain edits remain available.
 

@@ -87,6 +87,9 @@ describe("ide-powershell adapter and distribution integrity", () => {
       settingsPath: "project.psd1",
     });
     expect(adapter.getSettings().powershell.rename.acceptDisclaimer).toBe(true);
+    expect(adapter.getWorkspaceConfiguration("powershell.rename")).toEqual({
+      acceptDisclaimer: true,
+    });
   });
   it("does not advertise unsupported client lenses, hints or hierarchies", () => {
     for (const feature of ["codeLens", "inlayHints", "callHierarchy", "typeHierarchy"])

@@ -65,6 +65,10 @@ class LiveLspClient {
       return null;
     });
     this.connection.onRequest("window/workDoneProgress/create", () => null);
+    this.connection.onRequest(
+      "window/showMessageRequest",
+      (params) => this.onShowMessageRequest?.(params) ?? null,
+    );
     this.connection.listen();
 
     const rootUri = pathToFileURL(this.rootPath).href;
