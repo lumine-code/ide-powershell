@@ -77,7 +77,7 @@ liveSuite("ide-powershell actual editor routing and lifecycle", () => {
       return new Point(p.line, p.character);
     };
     expect(
-      JSON.stringify(await clientMain.provideHover().hover(editor, at("Get-ChildItem"))),
+      JSON.stringify(await clientMain.provideContextHelp().getHelp(editor, at("Get-ChildItem"))),
     ).toContain("Get-ChildItem");
     expect(
       (
