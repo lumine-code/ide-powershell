@@ -87,7 +87,7 @@ describe("ide-powershell adapter and distribution integrity", () => {
       settingsPath: "project.psd1",
     });
     expect(adapter.getSettings().powershell.rename.acceptDisclaimer).toBe(true);
-    expect(adapter.getWorkspaceConfiguration("powershell.rename")).toEqual({
+    expect(adapter.getSettings().powershell.rename).toEqual({
       acceptDisclaimer: true,
     });
   });
