@@ -86,19 +86,21 @@ liveSuite("ide-powershell actual editor routing and lifecycle", () => {
           .getSignature(editor, at("Get-ChildItem -Path", 0, "Get-ChildItem -Path ".length))
       ).signatures[0].label,
     ).toContain("-Path");
+    const documentProvider = clientMain.provideDocumentSymbolProvider();
+    const source = documentProvider
+      .getDocumentSymbolSources(editor)
+      .find(({ id }) => id === "ide-client:ide-powershell");
+    expect(source.state).toBe("ready");
+    const symbols = await documentProvider.getDocumentSymbols(editor, { sourceId: source.id });
+    expect(symbols.some(({ name }) => name.includes("Get-Greeting"))).toBe(true);
     expect(
-      (await clientMain.provideSymbol().getSymbols({ editor, type: "file" })).some(({ name }) =>
-        name.includes("Get-Greeting"),
+      (await clientMain.provideWorkspaceSymbolProvider().searchWorkspaceSymbols("Get-")).some(
+        ({ name }) => name.includes("Get-Greeting"),
       ),
-    ).toBe(true);
-    expect(
-      (
-        await clientMain.provideSymbol().getSymbols({ editor, type: "project", query: "Get-" })
-      ).some(({ name }) => name.includes("Get-Greeting")),
     ).toBe(true);
     editor.setCursorBufferPosition(at("Get-Utility"));
     expect(
-      (await clientMain.provideSymbol().getSymbols({ editor, type: "project-find" })).some(
+      (await clientMain.provideDefinitionProvider().getDefinitions(editor)).some(
         ({ path: target }) => target?.toLowerCase() === fixture.helper.toLowerCase(),
       ),
     ).toBe(true);
