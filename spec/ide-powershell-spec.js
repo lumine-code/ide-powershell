@@ -174,7 +174,7 @@ describe("ide-powershell adapter and distribution integrity", () => {
       server.resolveRuntime(context, path.join(directories[0], native)),
     ).toBeRejectedWithError(/PowerShell 7/);
   });
-  it("prefers an explicit complete server distribution over managed modules", async () => {
+  it("uses an explicit complete distribution without reading a corrupt managed installation", async () => {
     const script = payload();
     spyOn(server, "resolveRuntime").and.resolveTo({
       path: process.execPath,
@@ -182,8 +182,11 @@ describe("ide-powershell adapter and distribution integrity", () => {
       data: { command: process.execPath },
     });
     spyOn(server, "run");
+    const getManagedServer = jasmine
+      .createSpy("getManagedServer")
+      .and.throwError("Corrupt managed record");
     const launch = await server.resolveServer(
-      resolutionContext({ managedServer: { modulePath: "/wrong" }, rootPath: directory }),
+      resolutionContext({ getManagedServer, rootPath: directory }),
       { serverPath: script },
     );
     expect(launch.args).toContain(script);
@@ -192,6 +195,10 @@ describe("ide-powershell adapter and distribution integrity", () => {
     expect(launch.args).toContain("-LanguageServiceOnly");
     expect(launch.args).not.toContain("-EnableConsoleRepl");
     expect(server.run).not.toHaveBeenCalled();
+    expect(getManagedServer).not.toHaveBeenCalled();
+    await expectAsync(
+      server.resolveServer(resolutionContext({ getManagedServer })),
+    ).toBeRejectedWithError("Corrupt managed record");
   });
   it("prefers the managed complete payload over installed module discovery", async () => {
     const script = payload();
