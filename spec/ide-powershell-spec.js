@@ -1,3 +1,4 @@
+const { resolutionContext } = require("./helpers/server-resolution");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
@@ -125,7 +126,8 @@ describe("ide-powershell adapter and distribution integrity", () => {
   it("validates a native supported runtime without changing the process environment", async () => {
     const original = process.env.PSModulePath;
     spyOn(server, "run").and.resolveTo('{"Version":"7.6.6","Edition":"Core"}');
-    const runtime = await server.resolveRuntime(process.execPath);
+    const runtime =
+      (await server.resolveRuntime(resolutionContext(), process.execPath))?.data ?? null;
     expect(runtime.command).toBe(process.execPath);
     expect(runtime.version).toBe("7.6.6");
     expect(server.run.calls.argsFor(0)[1]).toContain("-NoProfile");
@@ -133,30 +135,57 @@ describe("ide-powershell adapter and distribution integrity", () => {
   });
   it("rejects Windows PowerShell and preview or unrelated runtime output", async () => {
     spyOn(server, "run").and.resolveTo('{"Version":"5.1.0","Edition":"Desktop"}');
-    await expectAsync(server.resolveRuntime(process.execPath)).toBeRejectedWithError(
-      /PowerShell 7/,
-    );
+    await expectAsync(
+      server.resolveRuntime(resolutionContext(), process.execPath),
+    ).toBeRejectedWithError(/PowerShell 7/);
     server.run.and.resolveTo('{"Version":"7.7.0-preview.1","Edition":"Core"}');
-    await expectAsync(server.resolveRuntime(process.execPath)).toBeRejectedWithError(
-      /PowerShell 7/,
-    );
+    await expectAsync(
+      server.resolveRuntime(resolutionContext(), process.execPath),
+    ).toBeRejectedWithError(/PowerShell 7/);
     server.run.and.resolveTo("Not PowerShell");
-    await expectAsync(server.resolveRuntime(process.execPath)).toBeRejected();
+    await expectAsync(server.resolveRuntime(resolutionContext(), process.execPath)).toBeRejected();
   });
   it("returns null when pwsh is absent and never silently replaces an explicit invalid runtime", async () => {
-    spyOn(server, "findOnPath").and.returnValue(null);
-    expect(await server.resolveRuntime()).toBeNull();
-    await expectAsync(server.resolveRuntime(path.join(directory, "absent"))).toBeRejected();
+    expect(
+      (await server.resolveRuntime(resolutionContext({ environment: { PATH: "" } }), ""))?.data ??
+        null,
+    ).toBeNull();
+    await expectAsync(
+      server.resolveRuntime(resolutionContext(), path.join(directory, "absent")),
+    ).toBeRejected();
+  });
+  it("skips an unsupported discovered PowerShell runtime and validates the next PATH entry", async () => {
+    const directories = ["old", "supported"].map((name) => path.join(directory, name));
+    const native = process.platform === "win32" ? "pwsh.exe" : "pwsh";
+    for (const folder of directories) {
+      fs.mkdirSync(folder);
+      fs.copyFileSync(process.execPath, path.join(folder, native));
+      fs.chmodSync(path.join(folder, native), 0o755);
+    }
+    spyOn(server, "run").and.callFake(async (command) =>
+      JSON.stringify({
+        Version: command.startsWith(directories[0]) ? "5.1.0" : "7.6.6",
+        Edition: "Core",
+      }),
+    );
+    const context = resolutionContext({ environment: { PATH: directories.join(path.delimiter) } });
+    expect((await server.resolveRuntime(context)).path).toBe(path.join(directories[1], native));
+    await expectAsync(
+      server.resolveRuntime(context, path.join(directories[0], native)),
+    ).toBeRejectedWithError(/PowerShell 7/);
   });
   it("prefers an explicit complete server distribution over managed modules", async () => {
     const script = payload();
-    spyOn(server, "resolveRuntime").and.resolveTo({ command: process.execPath });
-    spyOn(server, "run");
-    const launch = await server.resolveServer({
-      serverPath: script,
-      managedServer: { modulePath: "/wrong" },
-      rootPath: directory,
+    spyOn(server, "resolveRuntime").and.resolveTo({
+      path: process.execPath,
+      kind: "executable",
+      data: { command: process.execPath },
     });
+    spyOn(server, "run");
+    const launch = await server.resolveServer(
+      resolutionContext({ managedServer: { modulePath: "/wrong" }, rootPath: directory }),
+      { serverPath: script },
+    );
     expect(launch.args).toContain(script);
     expect(launch.cwd).toBe(directory);
     expect(launch.transport).toBe("stdio");
@@ -166,34 +195,65 @@ describe("ide-powershell adapter and distribution integrity", () => {
   });
   it("prefers the managed complete payload over installed module discovery", async () => {
     const script = payload();
-    spyOn(server, "resolveRuntime").and.resolveTo({ command: process.execPath });
-    spyOn(server, "run");
-    const launch = await server.resolveServer({
-      managedServer: { modulePath: script, version: "4.7.0" },
+    spyOn(server, "resolveRuntime").and.resolveTo({
+      path: process.execPath,
+      kind: "executable",
+      data: { command: process.execPath },
     });
+    spyOn(server, "run");
+    const launch = await server.resolveServer(
+      resolutionContext({ managedServer: { modulePath: script, version: "4.7.0" } }),
+      {},
+    );
     expect(launch.version).toBe("4.7.0");
     expect(launch.args).toContain(path.dirname(path.dirname(script)));
     expect(server.run).not.toHaveBeenCalled();
   });
   it("discovers installed modules without importing or installing global modules", async () => {
     const script = payload();
-    spyOn(server, "resolveRuntime").and.resolveTo({ command: process.execPath });
-    spyOn(server, "run").and.resolveTo(script);
-    expect((await server.resolveServer()).args).toContain(script);
+    spyOn(server, "resolveRuntime").and.resolveTo({
+      path: process.execPath,
+      kind: "executable",
+      data: { command: process.execPath },
+    });
+    spyOn(server, "run").and.resolveTo(JSON.stringify([script]));
+    expect((await server.resolveServer(resolutionContext({}), {})).args).toContain(script);
     const command = server.run.calls.argsFor(0)[1].at(-1);
     expect(command).toContain("Get-Module -ListAvailable");
     expect(command).not.toContain("Install-Module");
   });
+  it("ignores an incomplete discovered module before selecting a complete older module", async () => {
+    const script = payload();
+    const incomplete = path.join(directory, "incomplete", "Start-EditorServices.ps1");
+    fs.mkdirSync(path.dirname(incomplete));
+    fs.writeFileSync(incomplete, "# incomplete module\n");
+    spyOn(server, "resolveRuntime").and.resolveTo({
+      path: process.execPath,
+      kind: "executable",
+      data: { command: process.execPath },
+    });
+    spyOn(server, "run").and.resolveTo(JSON.stringify([incomplete, script]));
+    expect((await server.resolveServer(resolutionContext())).args).toContain(script);
+    await expectAsync(
+      server.resolveServer(resolutionContext(), { serverPath: incomplete }),
+    ).toBeRejected();
+  });
   it("refuses copied or incomplete startup scripts and preserves explicit selection errors", async () => {
     const script = payload();
-    spyOn(server, "resolveRuntime").and.resolveTo({ command: process.execPath });
+    spyOn(server, "resolveRuntime").and.resolveTo({
+      path: process.execPath,
+      kind: "executable",
+      data: { command: process.execPath },
+    });
     fs.unlinkSync(path.join(path.dirname(script), "PowerShellEditorServices.psd1"));
-    await expectAsync(server.resolveServer({ serverPath: script })).toBeRejected();
+    await expectAsync(
+      server.resolveServer(resolutionContext({}), { serverPath: script }),
+    ).toBeRejected();
     const wrong = path.join(directory, "wrong.ps1");
     fs.writeFileSync(wrong, "# wrong\n");
-    await expectAsync(server.resolveServer({ serverPath: wrong })).toBeRejectedWithError(
-      /Start-EditorServices/,
-    );
+    await expectAsync(
+      server.resolveServer(resolutionContext({}), { serverPath: wrong }),
+    ).toBeRejectedWithError(/Start-EditorServices/);
   });
   it("reads stable release metadata and rejects prerelease version strings", async () => {
     const api = { latestGithubRelease: jasmine.createSpy("latest").and.resolveTo(release()) };
