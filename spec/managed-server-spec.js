@@ -6,7 +6,7 @@ const { createProject, removeProject } = require("./helpers/project");
 const { exerciseServer } = require("./helpers/exercise-server");
 const { powershellPath, liveSuite } = require("./helpers/environment");
 liveSuite("ide-powershell verified managed distribution", () => {
-  let directory, client, edge, managed, timeout;
+  let directory, client, edge, managed, manager, timeout;
   beforeAll(() => {
     timeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 180000;
@@ -35,7 +35,8 @@ liveSuite("ide-powershell verified managed distribution", () => {
   afterEach(async () => {
     await client?.stop();
     edge?.dispose();
-    managed?.emitter.dispose();
+    managed?.dispose();
+    await manager?.deactivate();
     for (const name of ["ide-powershell", "ide"]) await lumine.packages.deactivatePackage(name);
     for (const key of ["serverPath", "powershellPath", "acceptRenameDisclaimer"])
       lumine.config.unset(`ide-powershell.${key}`);
@@ -44,14 +45,16 @@ liveSuite("ide-powershell verified managed distribution", () => {
   it("verifies and preserves the complete official bundle then launches and exercises the managed server", async () => {
     const clientPath = lumine.packages.getActivePackage("ide").path;
     const Managed = require(path.join(clientPath, "lib", "managed-servers"));
-    const Api = require(path.join(clientPath, "lib", "install-api"));
+    const LanguageServerManager = require(path.join(clientPath, "lib", "language-server-manager"));
     const storagePath = path.join(directory, "managed");
-    managed = new Managed({}, { storageRoot: storagePath });
+    manager = new LanguageServerManager();
+    manager.registerAdapter(client.adapter);
+    managed = new Managed(manager, { storageRoot: storagePath });
     const server = require("../lib/server");
     const installed = await server.installServer({
       storagePath,
       version: process.env.PSES_VERSION || "4.7.0",
-      api: new Api(managed, { id: "ide-powershell" }),
+      api: managed.apiFor(client.adapter),
     });
     expect(installed.checksum).toMatch(/^sha256:/);
     expect(installed.version).toBe(process.env.PSES_VERSION || "4.7.0");
