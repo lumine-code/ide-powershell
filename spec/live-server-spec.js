@@ -23,7 +23,7 @@ liveSuite("ide-powershell real Editor Services", () => {
     lumine.config.set("ide-powershell.powershellPath", powershellPath);
     lumine.config.set("ide-powershell.acceptRenameDisclaimer", true);
     const main = (await lumine.packages.activatePackage("ide-powershell")).mainModule;
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(adapter) {
         client = new LiveLspClient(adapter, directory);
         return { dispose() {} };

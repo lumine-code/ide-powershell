@@ -30,17 +30,17 @@ liveSuite("ide-powershell actual editor routing and lifecycle", () => {
     lumine.config.set("ide-powershell.serverPath", serverPath);
     lumine.config.set("ide-powershell.powershellPath", powershellPath);
     lumine.config.set("ide-powershell.acceptRenameDisclaimer", true);
-    for (const name of ["language-powershell", "ide-client", "ide-powershell"])
+    for (const name of ["language-powershell", "ide", "ide-powershell"])
       await lumine.packages.activatePackage(name);
-    clientMain = lumine.packages.getActivePackage("ide-client").mainModule;
-    service = clientMain.provideIdeClient();
+    clientMain = lumine.packages.getActivePackage("ide").mainModule;
+    service = clientMain.provideIde();
     diagnostics = [];
     edge = service.onDidPublishDiagnostics((event) => diagnostics.push(event));
   });
   afterEach(async () => {
     edge?.dispose();
     editor?.destroy();
-    for (const name of ["ide-powershell", "ide-client", "language-powershell"])
+    for (const name of ["ide-powershell", "ide", "language-powershell"])
       await lumine.packages.deactivatePackage(name);
     for (const key of ["serverPath", "powershellPath", "acceptRenameDisclaimer", "features"])
       lumine.config.unset(`ide-powershell.${key}`);
@@ -89,7 +89,7 @@ liveSuite("ide-powershell actual editor routing and lifecycle", () => {
     const documentProvider = clientMain.provideDocumentSymbolProvider();
     const source = documentProvider
       .getDocumentSymbolSources(editor)
-      .find(({ id }) => id === "ide-client:ide-powershell");
+      .find(({ id }) => id === "ide:ide-powershell");
     expect(source.state).toBe("ready");
     const symbols = await documentProvider.getDocumentSymbols(editor, { sourceId: source.id });
     expect(symbols.some(({ name }) => name.includes("Get-Greeting"))).toBe(true);

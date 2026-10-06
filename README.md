@@ -2,7 +2,7 @@
 
 Provide PowerShell language features with Editor Services.
 
-Registers the official [PowerShell Editor Services](https://github.com/PowerShell/PowerShellEditorServices) language server with `ide-client`. Install `language-powershell` for syntax highlighting and the editor service frontends for the features you want to display.
+Registers the official [PowerShell Editor Services](https://github.com/PowerShell/PowerShellEditorServices) language server with `ide`. Install `language-powershell` for syntax highlighting and the editor service frontends for the features you want to display.
 
 ## Features
 
@@ -18,7 +18,7 @@ Registers the official [PowerShell Editor Services](https://github.com/PowerShel
 
 To install `ide-powershell` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-powershell`.
 
-Install a [supported PowerShell 7+ runtime](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle), `ide-client` and `language-powershell`. Use `ide-client:manage-servers` to install Editor Services, or select `Start-EditorServices.ps1` from a complete official distribution. An explicit server path takes precedence over the managed copy, which takes precedence over an installed PowerShell module. The adapter finds `pwsh` on PATH unless you select its executable in the settings. It does not install a runtime or global modules.
+Install a [supported PowerShell 7+ runtime](https://learn.microsoft.com/powershell/scripting/install/powershell-support-lifecycle), `ide` and `language-powershell`. Use `ide:manage-servers` to install Editor Services, or select `Start-EditorServices.ps1` from a complete official distribution. An explicit server path takes precedence over the managed copy, which takes precedence over an installed PowerShell module. The adapter finds `pwsh` on PATH unless you select its executable in the settings. It does not install a runtime or global modules.
 
 ## Usage
 
@@ -30,7 +30,7 @@ PowerShell rename is best effort and restricted to one file. Dynamic scope, gene
 
 ## Services
 
-- `ide-client`: consumed to register Editor Services and its managed installation.
+- `ide`: consumed to register Editor Services and its managed installation.
 - `background-tips.provider`: provided to background-tips to explain runtime selection and analyzer fixes.
 
 ## Contributing

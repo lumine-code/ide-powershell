@@ -10,7 +10,7 @@ describe("ide-powershell adapter and distribution integrity", () => {
     lumine.config.set(`ide-powershell.${key}`, value);
   };
   const register = () => {
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return { dispose: jasmine.createSpy("dispose") };
@@ -69,8 +69,8 @@ describe("ide-powershell adapter and distribution integrity", () => {
   it("returns independent edge disposables and a useful background tip", () => {
     const first = { dispose: jasmine.createSpy("first") },
       second = { dispose: jasmine.createSpy("second") };
-    expect(main.consumeIdeClient({ registerAdapter: () => first })).toBe(first);
-    expect(main.consumeIdeClient({ registerAdapter: () => second })).toBe(second);
+    expect(main.consumeIde({ registerAdapter: () => first })).toBe(first);
+    expect(main.consumeIde({ registerAdapter: () => second })).toBe(second);
     first.dispose();
     expect(second.dispose).not.toHaveBeenCalled();
     expect(main.provideBackgroundTips().packageName).toBe("ide-powershell");
@@ -112,7 +112,7 @@ describe("ide-powershell adapter and distribution integrity", () => {
   });
   it("reports an absent runtime or server through the hub", async () => {
     const missing = jasmine.createSpy("missing");
-    main.consumeIdeClient({
+    main.consumeIde({
       registerAdapter(value) {
         adapter = value;
         return edge;

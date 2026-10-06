@@ -22,10 +22,9 @@ liveSuite("ide-powershell verified managed distribution", () => {
     for (const key of ["serverPath", "powershellPath"])
       lumine.config.set(`ide-powershell.${key}`, key === "powershellPath" ? powershellPath : "");
     lumine.config.set("ide-powershell.acceptRenameDisclaimer", true);
-    for (const name of ["ide-client", "ide-powershell"])
-      await lumine.packages.activatePackage(name);
+    for (const name of ["ide", "ide-powershell"]) await lumine.packages.activatePackage(name);
     const main = lumine.packages.getActivePackage("ide-powershell").mainModule;
-    edge = main.consumeIdeClient({
+    edge = main.consumeIde({
       registerAdapter(adapter) {
         client = new LiveLspClient(adapter, path.join(directory, "project"));
         return { dispose() {} };
@@ -37,14 +36,13 @@ liveSuite("ide-powershell verified managed distribution", () => {
     await client?.stop();
     edge?.dispose();
     managed?.emitter.dispose();
-    for (const name of ["ide-powershell", "ide-client"])
-      await lumine.packages.deactivatePackage(name);
+    for (const name of ["ide-powershell", "ide"]) await lumine.packages.deactivatePackage(name);
     for (const key of ["serverPath", "powershellPath", "acceptRenameDisclaimer"])
       lumine.config.unset(`ide-powershell.${key}`);
     await removeProject(directory);
   });
   it("verifies and preserves the complete official bundle then launches and exercises the managed server", async () => {
-    const clientPath = lumine.packages.getActivePackage("ide-client").path;
+    const clientPath = lumine.packages.getActivePackage("ide").path;
     const Managed = require(path.join(clientPath, "lib", "managed-servers"));
     const Api = require(path.join(clientPath, "lib", "install-api"));
     const storagePath = path.join(directory, "managed");
