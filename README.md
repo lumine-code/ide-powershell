@@ -14,6 +14,8 @@ Registers the official [PowerShell Editor Services](https://github.com/PowerShel
 - **Semantic information**: classifies PowerShell symbols with semantic tokens.
 - **Managed installation**: verifies the official release ZIP and preserves its bundled analyzer, modules, dependencies and legal notices.
 
+![PowerShell diagnostics locate a missing closing brace.](.github/demo.png)
+
 ## Installation
 
 To install `ide-powershell` search for it in the Install pane of the Lumine settings, or run the command `lumine --install lumine-code/ide-powershell`.

@@ -1,0 +1,16 @@
+{
+  "title": "ide-powershell",
+  "description": "PowerShell diagnostics locate a missing closing brace.",
+  "recordedOn": "2026-10-13",
+  "sourceRevision": "687c4aea7acd0d3e33a20e66ce62dafd5057d3ef",
+  "mode": "normal",
+  "fontSettings": "default",
+  "images": [
+    {
+      "file": "demo.png",
+      "label": "PowerShell diagnostics locate a missing closing brace.",
+      "width": 1100,
+      "height": 490
+    }
+  ]
+}
