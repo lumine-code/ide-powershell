@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { createGithubFetch } = require("./helpers/github-fetch");
 const os = require("node:os");
 const { LiveLspClient } = require("./helpers/live-lsp-client");
 const { createProject, removeProject } = require("./helpers/project");
@@ -49,7 +50,10 @@ liveSuite("ide-powershell verified managed distribution", () => {
     const storagePath = path.join(directory, "managed");
     manager = new LanguageServerManager();
     manager.registerAdapter(client.adapter);
-    managed = new Managed(manager, { storageRoot: storagePath });
+    managed = new Managed(manager, {
+      storageRoot: storagePath,
+      fetchUrl: createGithubFetch({ token: process.env.LUMINE_TEST_GITHUB_TOKEN }),
+    });
     const server = require("../lib/server");
     const installed = await server.installServer({
       storagePath,
