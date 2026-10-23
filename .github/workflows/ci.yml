@@ -69,7 +69,7 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/.test-tools/pwsh" "$GITHUB_WORKSPACE/.test-tools/pses"
           curl --fail --location --retry 2 --output "$GITHUB_WORKSPACE/.test-tools/pwsh.tar.gz" https://github.com/PowerShell/PowerShell/releases/download/v7.6.8/powershell-7.6.8-linux-x64.tar.gz
-          echo "ddbc4a2d113bbd46d283cfedcbcd117a70caefd7673f41f2b4e0000badf103bc  $GITHUB_WORKSPACE/.test-tools/pwsh.tar.gz" | sha256sum --check
+          echo "59112e38ad83350e4f6dc0195953c66b5926792f300ca2e7691b8242e7a16e7f  $GITHUB_WORKSPACE/.test-tools/pwsh.tar.gz" | sha256sum --check
           tar -xzf "$GITHUB_WORKSPACE/.test-tools/pwsh.tar.gz" -C "$GITHUB_WORKSPACE/.test-tools/pwsh"
           chmod +x "$GITHUB_WORKSPACE/.test-tools/pwsh/pwsh"
           curl --fail --location --retry 2 --output "$GITHUB_WORKSPACE/.test-tools/pses.zip" https://github.com/PowerShell/PowerShellEditorServices/releases/download/v4.7.0/PowerShellEditorServices.zip
